@@ -95,6 +95,19 @@
   .event h3{font-size:21px}
   .event p{color:var(--mute)}
 
+  /* instagram */
+  .ig-head{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px}
+  .ig-head h2{margin-bottom:0}
+  .ig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .ig-post{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:var(--bg2);border:1px solid var(--line);display:block}
+  .ig-post img{width:100%;height:100%;object-fit:cover;transition:transform .4s,filter .4s}
+  .ig-post:hover img{transform:scale(1.06);filter:brightness(.55)}
+  .ig-post .cap{position:absolute;inset:auto 0 0 0;padding:12px;font-size:13px;line-height:1.35;color:#fff;opacity:0;transition:opacity .3s;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+  .ig-post:hover .cap{opacity:1}
+  .ig-post .badge{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+  .ig-post .badge svg{width:13px;fill:var(--cyan)}
+  @media (max-width:820px){.ig-grid{gap:6px}.ig-post{border-radius:8px}}
+
   /* booking */
   .book{background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(59,20,102,.14));border:1px solid var(--line);border-radius:26px;padding:56px;display:grid;grid-template-columns:1fr 1.2fr;gap:50px}
   .book p{color:var(--mute);margin-bottom:14px}
@@ -129,7 +142,7 @@
   <div class="wrap">
     <a href="#top" class="logo">DJ AANSH<span>.</span></a>
     <div class="links">
-      <a href="#about">About</a><a href="#mixes">Mixes</a><a href="#events">Events</a><a href="#book">Book</a>
+      <a href="#about">About</a><a href="#mixes">Mixes</a><a href="#events">Events</a><a href="#insta">Instagram</a><a href="#book">Book</a>
     </div>
     <a href="#book" class="btn btn-hot">Book Me</a>
   </div>
@@ -201,6 +214,16 @@
         <a href="#book" class="btn btn-ghost">Info</a>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="insta" style="background:var(--bg2)">
+  <div class="wrap">
+    <div class="ig-head">
+      <div><div class="kicker">Instagram</div><h2>Latest from @dj__a.7</h2></div>
+      <a href="https://www.instagram.com/dj__a.7/" class="btn btn-hot">Follow on Instagram</a>
+    </div>
+    <div class="ig-grid" id="igGrid"></div>
   </div>
 </section>
 
@@ -307,6 +330,31 @@
     players.push(audio);
     list.appendChild(el);
   });
+
+  // instagram feed (Behold JSON — updates automatically when new posts go up)
+  (async () => {
+    const grid = document.getElementById('igGrid');
+    try {
+      const data = await fetch('https://feeds.behold.so/4kWccTALlv2upKmTvyOA').then(r => r.json());
+      const icons = {
+        VIDEO: '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
+        CAROUSEL_ALBUM: '<svg viewBox="0 0 24 24"><path d="M4 7h12v13H4zM8 3h12v13h-2V5H8z"/></svg>'
+      };
+      (data.posts || []).slice(0, 6).forEach(p => {
+        const img = (p.sizes && p.sizes.medium && p.sizes.medium.mediaUrl) || p.thumbnailUrl || p.mediaUrl;
+        const cap = (p.prunedCaption || p.caption || '').split('\n')[0].slice(0, 90);
+        const a = document.createElement('a');
+        a.className = 'ig-post'; a.href = p.permalink; a.target = '_blank'; a.rel = 'noopener';
+        a.innerHTML = `<img loading="lazy" alt="">${icons[p.mediaType] ? `<span class="badge">${icons[p.mediaType]}</span>` : ''}${cap ? '<span class="cap"></span>' : ''}`;
+        a.querySelector('img').src = img;
+        a.querySelector('img').alt = cap || 'Instagram post by @dj__a.7';
+        if (cap) a.querySelector('.cap').textContent = cap;
+        grid.appendChild(a);
+      });
+    } catch (e) {
+      grid.outerHTML = '<p class="note">See my latest posts on <a href="https://www.instagram.com/dj__a.7/" style="text-decoration:underline">Instagram @dj__a.7</a>.</p>';
+    }
+  })();
 
   // booking form (no backend — shows confirmation)
   document.getElementById('form').addEventListener('submit', e => {
