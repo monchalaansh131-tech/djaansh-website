@@ -10,8 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#08070b; --bg2:#121019; --ink:#f4f1fa; --mute:#9a93ab;
-    --hot:#ff2e88; --cyan:#22e4ff; --line:rgba(255,255,255,.09);
+    --bg:#070609; --bg2:#110c18; --ink:#ffffff; --mute:#a7a1b3;
+    --hot:#d4af37; --cyan:#f3dc9a; --purple:#3b1466; --line:rgba(212,175,55,.18);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
@@ -27,16 +27,16 @@
   .links{display:flex;gap:28px;font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mute)}
   .links a:hover{color:var(--ink)}
   .btn{display:inline-block;padding:12px 26px;border-radius:999px;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;transition:transform .15s, box-shadow .15s;cursor:pointer;border:none;font-family:inherit}
-  .btn-hot{background:var(--hot);color:#fff;box-shadow:0 0 30px rgba(255,46,136,.45)}
-  .btn-hot:hover{transform:translateY(-2px);box-shadow:0 0 44px rgba(255,46,136,.7)}
+  .btn-hot{background:linear-gradient(135deg,#f3dc9a,var(--hot) 55%,#a8842a);color:#0a0a0a;box-shadow:0 0 30px rgba(212,175,55,.45)}
+  .btn-hot:hover{transform:translateY(-2px);box-shadow:0 0 44px rgba(212,175,55,.7)}
   .btn-ghost{border:1px solid var(--line);color:var(--ink);background:transparent}
   .btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
 
   /* hero */
   .hero{min-height:100vh;display:flex;align-items:center;position:relative;padding-top:64px;overflow:hidden}
   .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;pointer-events:none}
-  .g1{width:520px;height:520px;background:var(--hot);top:-120px;right:-120px;animation:float 9s ease-in-out infinite}
-  .g2{width:420px;height:420px;background:#5b2bff;bottom:-160px;left:-120px;animation:float 11s ease-in-out infinite reverse}
+  .g1{width:520px;height:520px;background:var(--purple);top:-120px;right:-120px;animation:float 9s ease-in-out infinite}
+  .g2{width:420px;height:420px;background:var(--hot);opacity:.28;bottom:-160px;left:-120px;animation:float 11s ease-in-out infinite reverse}
   @keyframes float{50%{transform:translate(30px,40px)}}
   .hero-inner{position:relative;z-index:2}
   .tag{color:var(--cyan);text-transform:uppercase;letter-spacing:4px;font-size:13px;margin-bottom:18px}
@@ -63,10 +63,10 @@
   /* about */
   .about{display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:center}
   .portrait{aspect-ratio:4/5;border-radius:20px;background:
-      radial-gradient(circle at 30% 20%,rgba(255,46,136,.6),transparent 55%),
-      radial-gradient(circle at 80% 80%,rgba(34,228,255,.45),transparent 55%),var(--bg2);
+      radial-gradient(circle at 30% 20%,rgba(212,175,55,.6),transparent 55%),
+      radial-gradient(circle at 80% 80%,rgba(110,50,170,.45),transparent 55%),var(--bg2);
     border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:120px;color:rgba(255,255,255,.12)}
-  .portrait span{line-height:.9;text-align:center;letter-spacing:3px;background:linear-gradient(160deg,#fff 30%,var(--hot));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(255,46,136,.45))}
+  .portrait span{line-height:.9;text-align:center;letter-spacing:3px;background:linear-gradient(160deg,#fff 25%,var(--cyan) 50%,var(--hot));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(212,175,55,.45))}
   .about p{color:var(--mute);font-size:18px;margin-bottom:18px}
   .stats{display:flex;gap:40px;margin-top:30px}
   .stats strong{display:block;font-family:'Anton',sans-serif;font-size:44px;color:var(--ink)}
@@ -77,9 +77,9 @@
   .mix{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:24px;transition:border-color .2s, transform .2s}
   .mix:hover{border-color:var(--hot);transform:translateY(-4px)}
   .mix-top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-  .play{width:52px;height:52px;border-radius:50%;background:var(--hot);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer}
-  .play svg{fill:#fff;width:18px;margin-left:3px}
-  .mix.on .play{background:var(--cyan)}
+  .play{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#f3dc9a,var(--hot));display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer}
+  .play svg{fill:#0a0a0a;width:18px;margin-left:3px}
+  .mix.on .play{background:#fff}
   .mix h3{font-size:19px}
   .mix small{color:var(--mute)}
   .wave{display:flex;gap:3px;align-items:center;height:40px}
@@ -96,14 +96,14 @@
   .event p{color:var(--mute)}
 
   /* booking */
-  .book{background:linear-gradient(135deg,rgba(255,46,136,.14),rgba(91,43,255,.14));border:1px solid var(--line);border-radius:26px;padding:56px;display:grid;grid-template-columns:1fr 1.2fr;gap:50px}
+  .book{background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(59,20,102,.14));border:1px solid var(--line);border-radius:26px;padding:56px;display:grid;grid-template-columns:1fr 1.2fr;gap:50px}
   .book p{color:var(--mute);margin-bottom:14px}
   form{display:grid;gap:14px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   input,select,textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink);font:inherit;font-size:15px}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cyan)}
   textarea{min-height:110px;resize:vertical}
-  .ok{display:none;background:rgba(34,228,255,.1);border:1px solid var(--cyan);border-radius:12px;padding:16px;color:var(--cyan)}
+  .ok{display:none;background:rgba(110,50,170,.1);border:1px solid var(--cyan);border-radius:12px;padding:16px;color:var(--cyan)}
 
   footer{border-top:1px solid var(--line);padding:46px 0;color:var(--mute);font-size:14px}
   footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px}
