@@ -66,6 +66,7 @@
       radial-gradient(circle at 30% 20%,rgba(255,46,136,.6),transparent 55%),
       radial-gradient(circle at 80% 80%,rgba(34,228,255,.45),transparent 55%),var(--bg2);
     border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:120px;color:rgba(255,255,255,.12)}
+  .portrait span{line-height:.9;text-align:center;letter-spacing:3px;background:linear-gradient(160deg,#fff 30%,var(--hot));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(255,46,136,.45))}
   .about p{color:var(--mute);font-size:18px;margin-bottom:18px}
   .stats{display:flex;gap:40px;margin-top:30px}
   .stats strong{display:block;font-family:'Anton',sans-serif;font-size:44px;color:var(--ink)}
@@ -155,7 +156,7 @@
 
 <section id="about">
   <div class="wrap about">
-    <div class="portrait">DA</div>
+    <div class="portrait"><span>DJ<br>AANSH</span></div>
     <div>
       <div class="kicker">About</div>
       <h2>Reading the room since day one.</h2>
@@ -175,7 +176,7 @@
     <div class="kicker">Listen</div>
     <h2>Latest Mixes</h2>
     <div class="mixes" id="mixList"></div>
-    <p class="note">Full mixes on SoundCloud &amp; Mixcloud — links below.</p>
+    <p class="note">Tap play — these are original DJ Aansh preview beats, played live in your browser. 🔊 Turn your sound up (and your phone off silent).</p>
   </div>
 </section>
 
@@ -257,15 +258,132 @@
     eq.appendChild(b);
   }
 
-  // mixes
-  const mixes = [
-    ['Late Night House Vol. 1', 'House · 60 min'],
-    ['Afro x Amapiano Session', 'Afrobeats / Amapiano · 45 min'],
-    ['Desi Bangers Mix', 'Bollywood / Bhangra · 50 min'],
-    ['Throwback R&B', 'R&B / Hip-Hop · 40 min'],
+  // ---------- live beat engine (original beats, synthesised in the browser) ----------
+  let ctx = null, bus = null, noise = null, timer = null, cur = null;
+  const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+
+  function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const len = ctx.sampleRate;
+    noise = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noise.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+  function env(t, peak, decay, attack = 0.003) {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    g.connect(bus);
+    return g;
+  }
+  function osc(type, f, t, dur, dest) {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+    o.connect(dest); o.start(t); o.stop(t + dur + 0.05); return o;
+  }
+  function noiz(t, dur, filterType, freq, dest, q = 1) {
+    const s = ctx.createBufferSource(); s.buffer = noise;
+    const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q;
+    s.connect(f); f.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
+  const S = {
+    kick(t, v = 1) { const g = env(t, v, 0.35); const o = osc('sine', 150, t, 0.4, g); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); },
+    hat(t, open = false, v = 0.25) { noiz(t, open ? 0.25 : 0.05, 'highpass', 7500, env(t, v, open ? 0.22 : 0.04)); },
+    shaker(t, v = 0.12) { noiz(t, 0.06, 'highpass', 5000, env(t, v, 0.05, 0.01)); },
+    clap(t, v = 0.5) { noiz(t, 0.2, 'bandpass', 1500, env(t, v, 0.16), 0.8); },
+    snare(t, v = 0.5) { noiz(t, 0.2, 'bandpass', 1900, env(t, v, 0.18), 0.7); osc('triangle', 185, t, 0.12, env(t, v * 0.6, 0.1)); },
+    rim(t, v = 0.3) { osc('square', 1700, t, 0.03, env(t, v * 0.4, 0.025)); },
+    tom(t, f, v = 0.7, dec = 0.3) { const g = env(t, v, dec); const o = osc('sine', f * 1.6, t, dec, g); o.frequency.exponentialRampToValueAtTime(f, t + 0.06); },
+    logdrum(t, m, v = 0.7) {
+      const f = mf(m); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(env(t, v, 0.45, 0.005));
+      const o = osc('sine', f * 2, t, 0.5, lp); o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
+      osc('square', f, t, 0.12, env(t, v * 0.12, 0.1));
+    },
+    bass(t, m, dur, v = 0.35, cut = 380) {
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; lp.connect(env(t, v, dur, 0.005));
+      osc('sawtooth', mf(m), t, dur, lp); osc('sine', mf(m), t, dur, lp);
+    },
+    chord(t, notes, dur, { type = 'sawtooth', v = 0.08, cut = 1800, attack = 0.005 } = {}) {
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; lp.connect(env(t, v, dur, attack));
+      notes.forEach(n => { osc(type, mf(n), t, dur + attack, lp); osc(type, mf(n) * 1.004, t, dur + attack, lp); });
+    },
+    pluck(t, m, v = 0.18) {
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(4000, t); lp.frequency.exponentialRampToValueAtTime(600, t + 0.2);
+      lp.connect(env(t, v, 0.22, 0.002)); osc('square', mf(m), t, 0.25, lp);
+    },
+  };
+
+  // 64-step (4 bar) patterns; each play(i, t, spt) schedules one 16th step
+  const beats = [
+    { title: 'Late Night House', desc: 'House · 124 BPM', bpm: 124,
+      play(s, t, spt) {
+        const b = s >> 4, i = s & 15, ch = [[57,60,64],[53,57,60],[55,60,64],[55,59,62]][b], root = [45,41,48,43][b];
+        if (i % 4 === 0) S.kick(t);
+        if (i === 4 || i === 12) S.clap(t, 0.4);
+        if (i % 4 === 2) { S.hat(t, true, 0.18); S.bass(t, root, spt * 1.6); }
+        else if (i % 2) S.hat(t, false, 0.08);
+        if (i === 2 || i === 7 || i === 10) S.chord(t, ch, spt * 1.2, { v: 0.06, cut: 2200 });
+      } },
+    { title: 'Afro x Amapiano Session', desc: 'Amapiano · 112 BPM', bpm: 112,
+      play(s, t, spt) {
+        const b = s >> 4, i = s & 15, roots = [38,34,41,36], pads = [[50,53,57,60],[46,50,53,57],[53,57,60,64],[48,52,55,59]];
+        if (i === 0 || i === 8) S.kick(t, 0.9);
+        S.shaker(t, i % 2 ? 0.1 : 0.05);
+        if (i === 4 || i === 12) S.rim(t, 0.5);
+        if ([3,6,10,14].includes(i) || (b % 2 && i === 15)) S.logdrum(t, roots[b] + (i === 10 ? 7 : 0));
+        if (i === 0) S.chord(t, pads[b], spt * 15, { type: 'triangle', v: 0.05, cut: 1400, attack: 0.08 });
+      } },
+    { title: 'Desi Bangers', desc: 'Bhangra · 100 BPM', bpm: 100,
+      play(s, t, spt) {
+        const i = s & 15, mel = [62,66,69,66,74,69,66,69,62,64,66,69,71,69,66,64,74,71,69,66,69,66,64,62,66,69,71,74,71,69,66,62];
+        if ([0,3,8,11].includes(i)) S.tom(t, 70, 0.9, 0.35);
+        if ([2,5,6,10,13,14].includes(i)) S.tom(t, 210, 0.45, 0.12);
+        if (i % 2 === 0) { S.shaker(t, 0.08); S.pluck(t, mel[((s >> 1) % 32)]); }
+        if (i === 0 || i === 8) S.bass(t, 38, spt * 3, 0.3);
+        if (i === 4 || i === 12) S.clap(t, 0.25);
+      } },
+    { title: 'Throwback R&B', desc: 'R&B / Hip-Hop · 88 BPM', bpm: 88, swing: 0.28,
+      play(s, t, spt) {
+        const b = s >> 4, i = s & 15, ch = [[51,55,58,62],[49,53,56,60],[48,51,55,58],[53,56,60,63]][b], root = [39,37,36,41][b];
+        if (i === 0 || i === 7 || i === 10) S.kick(t, 0.95);
+        if (i === 4 || i === 12) S.snare(t, 0.55);
+        if (i % 2 === 0) S.hat(t, false, i % 4 ? 0.07 : 0.12);
+        if (i === 0 || i === 8) S.chord(t, ch, spt * 7, { type: 'sine', v: 0.09, cut: 2500, attack: 0.02 });
+        if (i === 0 || i === 10) S.bass(t, root, spt * 4, 0.4, 300);
+      } },
   ];
+
+  function stopBeat() {
+    if (timer) clearInterval(timer); timer = null;
+    if (bus) { const old = bus; old.gain.setTargetAtTime(0, ctx.currentTime, 0.05); setTimeout(() => old.disconnect(), 400); bus = null; }
+    if (cur) { cur.el.classList.remove('on'); cur.el.querySelector('.time').textContent = ''; }
+    cur = null;
+  }
+  function startBeat(beat, el) {
+    initAudio(); if (ctx.state === 'suspended') ctx.resume();
+    stopBeat();
+    bus = ctx.createGain(); bus.gain.value = 0.8;
+    const comp = ctx.createDynamicsCompressor(); bus.connect(comp); comp.connect(ctx.destination);
+    cur = { beat, el, step: 0, next: ctx.currentTime + 0.06, start: ctx.currentTime };
+    el.classList.add('on');
+    timer = setInterval(() => {
+      if (!cur) return;
+      const spt = 60 / beat.bpm / 4;
+      while (cur.next < ctx.currentTime + 0.15) {
+        const off = beat.swing && cur.step % 2 ? spt * beat.swing : 0;
+        beat.play(cur.step % 64, cur.next + off, spt);
+        cur.next += spt; cur.step++;
+      }
+      const e = Math.floor(ctx.currentTime - cur.start);
+      el.querySelector('.time').textContent = `${Math.floor(e / 60)}:${String(e % 60).padStart(2, '0')}`;
+    }, 25);
+  }
+
   const list = document.getElementById('mixList');
-  mixes.forEach(([t, d]) => {
+  const playIcon = '<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>';
+  const stopIcon = '<svg viewBox="0 0 24 24" style="margin-left:0"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  beats.forEach(beat => {
     const el = document.createElement('div');
     el.className = 'mix';
     let bars = '';
@@ -273,11 +391,13 @@
       const h = 20 + Math.random() * 80;
       bars += `<i style="height:${h}%;animation-delay:${(Math.random()*-1).toFixed(2)}s"></i>`;
     }
-    el.innerHTML = `<div class="mix-top"><button class="play" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></button><div><h3>${t}</h3><small>${d}</small></div></div><div class="wave">${bars}</div>`;
-    el.querySelector('.play').onclick = () => {
-      const on = el.classList.contains('on');
-      document.querySelectorAll('.mix.on').forEach(m => m.classList.remove('on'));
-      if (!on) el.classList.add('on');
+    el.innerHTML = `<div class="mix-top"><button class="play" aria-label="Play ${beat.title}">${playIcon}</button><div style="flex:1"><h3>${beat.title}</h3><small>${beat.desc}</small></div><small class="time" style="color:var(--cyan);font-variant-numeric:tabular-nums"></small></div><div class="wave">${bars}</div>`;
+    const btn = el.querySelector('.play');
+    btn.onclick = () => {
+      const playingThis = cur && cur.el === el;
+      document.querySelectorAll('.mix .play').forEach(p => p.innerHTML = playIcon);
+      if (playingThis) { stopBeat(); return; }
+      try { startBeat(beat, el); btn.innerHTML = stopIcon; } catch (e) { el.querySelector('small').textContent = 'Audio not supported in this browser'; }
     };
     list.appendChild(el);
   });
